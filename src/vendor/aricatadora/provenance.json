@@ -1,0 +1,40 @@
+{
+  "source": "Aricatadora",
+  "commit": "41cf9fe9bb0003aecc3aac365d0cc83c433a84b0",
+  "copiedOn": "2026-10-20",
+  "policy": "Unmodified source snapshot. No runtime dependency on the sibling checkout.",
+  "files": [
+    {
+      "path": "branding.ts",
+      "sha256": "feac0e5a6364f644dd988ce8fa1a742036a6ca66a0e84ff69e958e2714ebddda"
+    },
+    {
+      "path": "data/substitutions/sub-rosa.recovered.ts",
+      "sha256": "fa4ae49a284fe9410f1924acc9536bd4d488a8ee12391ff4563db244182e1673"
+    },
+    {
+      "path": "geometry/cyclotomicInteger.ts",
+      "sha256": "82fac7411a0e737d38944a9d84adb99a9888d18a2f8ee1e86a0ebd0f44a1bf45"
+    },
+    {
+      "path": "geometry/eps.ts",
+      "sha256": "5957330c655d9683412bf2a7aa859dacc409811278d4cb4bd2b1d5cf99e2ee4d"
+    },
+    {
+      "path": "tilings/substitutions/edgeReplacement.ts",
+      "sha256": "6551fd03a35e6dfee7f2a8789ac0a7d827d37e735a0924aa5fd0300e7fec94e9"
+    },
+    {
+      "path": "tilings/substitutions/engine.ts",
+      "sha256": "f181dc7f752136954a0c6938f25862c854d859d06851335104d817af07f4154e"
+    },
+    {
+      "path": "tilings/substitutions/sub-rosa/construction.ts",
+      "sha256": "8df3f094b2a34f2745f85a01c37377e89183628b355ab024a427f16f80df1d85"
+    },
+    {
+      "path": "tilings/substitutions/sub-rosa/data.ts",
+      "sha256": "e8edb21500da5c43471b285059b7a993855be2041c4ba4de0a93781f9f91d3ab"
+    }
+  ]
+}
