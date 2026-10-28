@@ -25,6 +25,7 @@ const edge = ref(PALETTES[0]!.edge);
 const mode = ref<ColorMode>("shape");
 const phase = ref(0),
   edges = ref(true),
+  superRhombusOutlines = ref(false),
   lineWidth = ref(0.035);
 const view: View = { rotation: 0 };
 const patch = shallowRef<Patch | null>(null);
@@ -41,6 +42,7 @@ const appearance = computed<Appearance>(() => ({
   mode: mode.value,
   phase: phase.value,
   edges: edges.value,
+  superRhombusOutlines: superRhombusOutlines.value,
   lineWidth: lineWidth.value,
 }));
 const count = computed(() => patch.value?.tiles.length.toLocaleString() ?? "—");
@@ -323,6 +325,16 @@ onBeforeUnmount(() => {
                 type="checkbox"
               />
             </div>
+            <div class="finish-row">
+              <label for="super-rhombus-outlines" title="Straight guides one inflation above the unit rhombi; actual replacement boundaries interlock">First-generation outlines</label>
+              <input
+                id="super-rhombus-outlines"
+                v-model="superRhombusOutlines"
+                class="switch"
+                type="checkbox"
+                :disabled="generation === 0"
+              />
+            </div>
             <div class="outline-settings" :class="{ muted: !edges }">
               <label class="control-label" for="line-width"
                 >Line weight <output>{{ lineWidth.toFixed(3) }}</output></label
@@ -348,7 +360,7 @@ onBeforeUnmount(() => {
                 id="edge-color"
                 v-model="edge"
                 type="color"
-                :disabled="!edges"
+                :disabled="!edges && !superRhombusOutlines"
                 @input="customColor"
               />
             </div>

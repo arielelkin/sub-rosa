@@ -258,3 +258,47 @@ test("works on a narrow screen and renders without external network dependencies
   const bounds = await page.getByRole("dialog").boundingBox();
   expect(bounds!.width).toBeLessThan(390);
 });
+
+
+test("toggles first-generation guides independently and preserves them across fields", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByText("2,968 RHOMBI")).toBeVisible();
+  const guides = page.getByLabel("First-generation outlines");
+  const canvas = page.locator("canvas");
+  const pixels = () => canvas.evaluate((el) => (el as HTMLCanvasElement).toDataURL());
+  await page.getByLabel("Tile outlines").uncheck();
+  await expect(page.getByLabel("Outline", { exact: true })).toBeDisabled();
+  const before = await pixels();
+  await guides.check();
+  await expect(page.getByLabel("Outline", { exact: true })).toBeEnabled();
+  await expect.poll(pixels).not.toBe(before);
+  await expect(page.getByText("GENERATING", { exact: true })).not.toBeVisible();
+  const ready = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Download SVG" }).click();
+  const svg = await readFile((await (await ready).path())!, "utf8");
+  const exported = await page.evaluate((xml) => {
+    const doc = new DOMParser().parseFromString(xml, "image/svg+xml");
+    const layer = doc.querySelector('[data-layer="super-rhombi"]')!;
+    return { errors: doc.querySelectorAll("parsererror").length,
+      count: layer.getAttribute("d")!.split("M").length - 1,
+      clip: layer.getAttribute("clip-path") };
+  }, svg);
+  expect(exported).toEqual({ errors: 0, count: 14, clip: "url(#patch-clip)" });
+  await guides.uncheck();
+  await expect.poll(pixels).toBe(before);
+  await guides.check();
+  await page.getByRole("button", { name: "Seed", exact: false }).click();
+  await expect(page.getByText("14 RHOMBI", { exact: true })).toBeVisible();
+  await expect(guides).toBeDisabled();
+  await page.getByRole("button", { name: "Second", exact: false }).click();
+  await expect(page.getByRole("button", { name: "Download SVG" })).toBeEnabled();
+  await expect(guides).toBeEnabled();
+  await expect(guides).toBeChecked();
+  await page.getByLabel("X offset").focus();
+  await page.keyboard.press("End");
+  await expect(page.getByText("SOURCE GENERATION 3")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Download SVG" })).toBeEnabled();
+  const offsetBefore = await pixels();
+  await guides.uncheck();
+  await expect.poll(pixels).not.toBe(offsetBefore);
+});

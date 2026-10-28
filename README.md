@@ -18,6 +18,7 @@ Open the local URL printed by Vite. `npm run build` typechecks and creates `dist
 - Six palettes, custom tile/background/outline colors, color cycling, and coloring by rhombus shape, edge direction, distance from the center, or substitution family.
 - The canvas stays centered and automatically fits the selected patch. It has no view controls; scrolling over the canvas scrolls the page.
 - The prototile panel shows large, equally scaled rhombi with their acute and obtuse angles in degrees and exact multiples of π / 7. Each displayed angle occurs at two opposite corners.
+- **First-generation outlines:** toggle straight super-rhombus guides one inflation above the unit tiles, independently of tile outlines. Available for First and Second, including offset fields. Guides use the outline color and are included in SVG exports; the actual interlocking replacement boundaries are jagged.
 - **Download SVG** saves the current view as vector artwork with the full research citation and source-diagram provenance in `<desc>` and `<metadata>`.
 
 Geometry generation runs in a cancellable worker. Palette changes only recolor the existing geometry.

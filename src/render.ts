@@ -9,7 +9,13 @@ export interface Appearance {
   mode: ColorMode;
   phase: number;
   edges: boolean;
+  superRhombusOutlines: boolean;
   lineWidth: number;
+}
+// Keep the hierarchy visible even when unit outlines are hidden or very fine.
+const SUPER_RHOMBUS_LINE_WIDTH = 0.12;
+function polygonPath(points: Patch["superRhombi"][number]): string {
+  return `M${points.map((p) => p.join(",")).join("L")}Z`;
 }
 export interface View {
   rotation: number;
@@ -74,6 +80,13 @@ export function drawPatch(
     ctx.fill();
     if (appearance.edges) ctx.stroke();
   }
+  if (appearance.superRhombusOutlines && patch.superRhombi.length) {
+    // The field contains whole tiles; guides must not extend into its empty margin.
+    const clip = new Path2D(patch.tiles.map((tile) => polygonPath(tile.points)).join(""));
+    ctx.clip(clip);
+    ctx.lineWidth = Math.max(SUPER_RHOMBUS_LINE_WIDTH, appearance.lineWidth * 3);
+    ctx.stroke(new Path2D(patch.superRhombi.map(polygonPath).join("")));
+  }
   ctx.restore();
 }
 function escapeXml(value: string): string {
@@ -104,6 +117,10 @@ export function exportSvg(
         `<polygon points="${tile.points.map((p) => p.join(",")).join(" ")}" fill="${escapeXml(appearance.colors[colorIndex(tile, appearance.mode, appearance.phase)]!)}"/>`,
     )
     .join("\n");
+  const guides = appearance.superRhombusOutlines && patch.superRhombi.length
+    ? `<defs><clipPath id="patch-clip"><path d="${patch.tiles.map((tile) => polygonPath(tile.points)).join("")}"/></clipPath></defs>
+<path data-layer="super-rhombi" d="${patch.superRhombi.map(polygonPath).join("")}" fill="none" stroke="${escapeXml(appearance.edge)}" stroke-width="${Math.max(SUPER_RHOMBUS_LINE_WIDTH, appearance.lineWidth * 3)}" clip-path="url(#patch-clip)"/>`
+    : "";
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-labelledby="title desc">
 <title id="title">Sub Rosa n7.3 — generation ${generation}</title>
 <desc id="desc">${escapeXml(RESEARCH_CREDIT + "\n" + IMPLEMENTATION_CREDIT)}</desc>
@@ -111,5 +128,6 @@ export function exportSvg(
 <rect width="100%" height="100%" fill="${escapeXml(appearance.background)}"/>
 <g transform="translate(${t.tx} ${t.ty}) rotate(${view.rotation}) scale(${t.scale} ${-t.scale}) translate(${-t.cx} ${-t.cy})" stroke="${appearance.edges ? escapeXml(appearance.edge) : "none"}" stroke-width="${appearance.lineWidth}" stroke-linejoin="round">
 ${paths}
+${guides}
 </g></svg>`;
 }

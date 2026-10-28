@@ -1,5 +1,5 @@
 // Intent: Adapt Aricatadora's unchanged exact Sub Rosa expansion into plain renderable polygons.
-import { toComplex } from "./vendor/aricatadora/geometry/cyclotomicInteger";
+import { add, multiply, multiplyByRootPower, toComplex } from "./vendor/aricatadora/geometry/cyclotomicInteger";
 import { expandEdgeReplacement } from "./vendor/aricatadora/tilings/substitutions/edgeReplacement";
 import { materializeSubstitutionTile } from "./vendor/aricatadora/tilings/substitutions/engine";
 import { SUB_ROSA } from "./vendor/aricatadora/tilings/substitutions/sub-rosa/data";
@@ -27,12 +27,41 @@ export interface Tile {
 }
 export interface Patch {
   tiles: Tile[];
+  superRhombi: Point[][];
   bounds: { minX: number; minY: number; maxX: number; maxY: number };
   sourceGeneration: SourceGeneration;
   offset: Point;
 }
 export type WorkerReply =
   { ok: true; patch: Patch } | { ok: false; error: string };
+
+// Recover each visible leaf's immediate ancestor in final unit-edge coordinates.
+// Straight parent guides differ from the interlocking edge-replacement boundary.
+function superRhombiForAddresses(addresses: readonly (readonly number[])[], offset: Point): Point[][] {
+  const parents = new Map<string, Point[]>();
+  for (const address of addresses) {
+    if (address.length < 2) continue;
+    const prefix = address.slice(0, -1);
+    const key = prefix.join("/");
+    if (parents.has(key)) continue;
+    let parent = SUB_ROSA.seeds[prefix[0]!]!;
+    for (const index of prefix.slice(1)) {
+      const child = SUB_ROSA.rules[parent.type]![index]!;
+      parent = {
+        type: child.type,
+        rotation: (parent.rotation + child.rotation) % SUB_ROSA.ring.order,
+        translation: add(multiply(SUB_ROSA.inflation, parent.translation),
+          multiplyByRootPower(child.translation, parent.rotation)),
+      };
+    }
+    parents.set(key, SUB_ROSA.exactPrototiles[parent.type]!.map((point) => {
+      const [x, y] = toComplex(multiply(SUB_ROSA.inflation,
+        add(parent.translation, multiplyByRootPower(point, parent.rotation))));
+      return [x - offset[0], y - offset[1]] as const;
+    }));
+  }
+  return [...parents.values()];
+}
 
 export function generatePatch({
   generation,
@@ -101,6 +130,7 @@ export function generatePatch({
       }
     return {
       tiles,
+      superRhombi: superRhombiForAddresses(leaves.map((leaf) => leaf.address), effectiveOffset),
       bounds: { minX, minY, maxX, maxY },
       sourceGeneration,
       offset: effectiveOffset,

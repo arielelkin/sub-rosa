@@ -313,6 +313,9 @@ input[type="color"]::-moz-color-swatch {
   font-size: 11px;
   gap: 8px;
 }
+.finish-row + .finish-row {
+  margin-top: 12px;
+}
 .switch {
   appearance: none;
   width: 29px;

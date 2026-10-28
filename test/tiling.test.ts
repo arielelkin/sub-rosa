@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { colorIndex, PALETTES, type ColorMode } from "../src/color";
 import { exportSvg, type Appearance } from "../src/render";
 import { generatePatch } from "../src/tiling";
+import { toComplex } from "../src/vendor/aricatadora/geometry/cyclotomicInteger";
 import { SUB_ROSA } from "../src/vendor/aricatadora/tilings/substitutions/sub-rosa/data";
 import {
   polygonSignedArea,
@@ -120,6 +121,39 @@ describe("Aricatadora geometry reuse", () => {
       1,
     );
   });
+  it.each([
+    [1, 0, 0],
+    [2, 0, 0],
+    [2, 80, -60],
+    [2, 1000, -1000],
+  ] as const)("aligns inflated parent guides at generation %i, offset %i, %i", (generation, x, y) => {
+    const patch = generatePatch({ generation, fieldSize: 60, offset: [x, y] });
+    const inflation = toComplex(SUB_ROSA.inflation)[0];
+    const coarse = generatePatch({
+      generation: (patch.sourceGeneration - 1) as 0 | 1 | 2,
+      fieldSize: 24,
+      offset: [x / inflation, y / inflation],
+    });
+    const key = (points: readonly (readonly number[])[]) =>
+      points.map((p) => p.map((v) => Math.round(v * 1e6)).join(",")).join(";");
+    const candidates = new Set(coarse.tiles.map((tile) =>
+      key(tile.points.map(([px, py]) => [
+        px * inflation - (coarse.sourceGeneration < 2 ? x : 0),
+        py * inflation - (coarse.sourceGeneration < 2 ? y : 0),
+      ]))));
+    expect(patch.superRhombi.length).toBeGreaterThan(0);
+    if (generation === 1) expect(patch.superRhombi).toHaveLength(14);
+    for (const points of patch.superRhombi) {
+      expect(candidates.has(key(points))).toBe(true);
+      for (let i = 0; i < 4; i++) {
+        const a = points[i]!, b = points[(i + 1) % 4]!;
+        expect(Math.hypot(a[0] - b[0], a[1] - b[1])).toBeCloseTo(inflation, 8);
+      }
+    }
+  });
+  it("has no inflated parent guides in the seed", () => {
+    expect(generatePatch({ generation: 0, fieldSize: 60, offset: [0, 0] }).superRhombi).toEqual([]);
+  });
   it("ignores retained offsets when showing a complete seed", () => {
     expect(
       generatePatch({ generation: 0, fieldSize: 60, offset: [1000, -1000] }),
@@ -146,6 +180,7 @@ describe("appearance and export", () => {
     mode: "shape",
     phase: 0,
     edges: true,
+    superRhombusOutlines: false,
     lineWidth: 0.035,
   };
   it.each(["shape", "direction", "rings", "lineage"] as ColorMode[])(
@@ -158,6 +193,17 @@ describe("appearance and export", () => {
       expect(patch.tiles.map((t) => colorIndex(t, mode, 3))).toEqual(indices);
     },
   );
+  it("exports independently toggled guides clipped to the tile patch", () => {
+    const first = generatePatch({ generation: 1, fieldSize: 60, offset: [0, 0] });
+    const svg = (enabled: boolean) => exportSvg(first,
+      { ...appearance, edges: false, superRhombusOutlines: enabled },
+      { rotation: 0 }, 2000, 1600, 1);
+    expect(svg(false)).not.toContain('data-layer="super-rhombi"');
+    expect(svg(true)).toContain('data-layer="super-rhombi"');
+    expect(svg(true)).toContain('clip-path="url(#patch-clip)"');
+    expect(svg(true)).toContain('stroke-width="0.12"');
+    expect(svg(true).match(/<polygon /g)).toHaveLength(first.tiles.length);
+  });
   it("exports vector geometry and a full research citation with diagram provenance", () => {
     const svg = exportSvg(
       patch,
